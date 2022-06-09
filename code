@@ -1,0 +1,83 @@
+FUNCTION FIELD_EXIT_DZBD1T.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     REFERENCE(INPUT)
+*"  EXPORTING
+*"     REFERENCE(OUTPUT)
+*"----------------------------------------------------------------------
+*  tables:
+*    bseg,
+*    bkpf.
+  if sy-tcode eq 'FBL5N' or
+     sy-tcode eq 'FB02'  or
+     sy-tcode eq 'FB03'.
+    data:
+      x_bukrs like bseg-bukrs,
+      x_belnr like bseg-belnr,
+      x_gjahr like bseg-gjahr,
+      x_buzei like bseg-buzei,
+      x_zfbdt like bseg-zfbdt,
+      x_zterm like bseg-zterm,
+      x_zbd1t like bseg-zbd1t.
+    field-symbols:
+      <bukrs> type any,
+      <belnr> type any,
+      <gjahr> type any,
+      <buzei> type any,
+      <zfbdt> type any,
+      <zterm> type any,
+      <zbd1t> type any.
+    assign ('(SAPMF05L)BSEG-BUKRS') to <bukrs>.
+    assign ('(SAPMF05L)BSEG-BELNR') to <belnr>.
+    assign ('(SAPMF05L)BKPF-GJAHR') to <gjahr>.
+    assign ('(SAPMF05L)BSEG-BUZEI') to <buzei>.
+    assign ('(SAPMF05L)BSEG-ZFBDT') to <zfbdt>.
+    assign ('(SAPMF05L)BSEG-ZTERM') to <zterm>.
+    assign ('(SAPMF05L)BSEG-ZBD1T') to <zbd1t>.
+    "---------------------------------------------------------
+    " Verifica se o usuário está cadastrado, o  que  significa
+    " estar autorizado a mudar o valor do campo
+    "---------------------------------------------------------
+    select single id
+      into ztbfi026-id
+      from ztbfi026
+      where id eq sy-uname.
+    if sy-subrc ne 0.
+      "-------------------------------------------------------
+      " Se o usuário não está autorizado a fazer  nenhuma  mu-
+      " dança, porém se ele muda o valor para  o  mesmo  valor
+      " que estava gravado, não devemos exibir a  mensagem  de
+      " erro. Só será exibida caso os valores sejam diferentes
+      "-------------------------------------------------------
+      clear:
+        sy-subrc.
+      "-------------------------------------------------------
+      " Seleciona o valor dos campos da tabela BSEG conforme o
+      " documento atual exibido na tela da transação
+      "-------------------------------------------------------
+      select single zfbdt zterm zbd1t
+        into (x_zfbdt, x_zterm, x_zbd1t)
+        from bseg
+        where bukrs eq <bukrs>
+          and belnr eq <belnr>
+          and gjahr eq <gjahr>
+          and buzei eq <buzei>.
+      if sy-subrc eq 0.
+        "-------------------
+        " Comparando valores
+        "-------------------
+        if x_zfbdt ne <zfbdt> or
+           x_zterm ne <zterm> or
+           x_zbd1t ne <zbd1t>.
+          message e601(zb). " Usuário(a) não autorizado(a). Entre em
+                            " contato com o seu coordenador.
+        endif.
+      else.
+        clear:
+          sy-subrc.
+        message e602(zb). " Erro. Documento não encontrado !
+      endif.
+    endif.
+  endif.
+ENDFUNCTION.
